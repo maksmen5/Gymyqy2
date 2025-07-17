@@ -58,7 +58,9 @@ def start(message):
     user_state.pop(message.chat.id, None)
     show_main_menu(message.chat.id)
 
-@bot.message_handler(commands=['confirm'])
+import re
+
+@bot.message_handler(func=lambda m: re.match(r'^/confirm_\d+_\w+$', m.text))
 def confirm_payment_command(message):
     try:
         parts = message.text.strip().split("_")
