@@ -172,10 +172,15 @@ def debug(msg):
 @bot.message_handler(commands=["test_invite"])
 def test_invite(msg):
     try:
-        invite = bot.create_chat_invite_link(chat_id=CHANNELS["home"], name="Test Link", expire_date=None)
+        invite = bot.create_chat_invite_link(
+            chat_id=CHANNELS["home"],
+            name="Test Link",
+            expire_date=None
+        )
         bot.send_message(msg.chat.id, f"✅ Invite link: {invite.invite_link}")
     except Exception as e:
         bot.send_message(msg.chat.id, f"❌ Error: {e}")
+
 
 
 
