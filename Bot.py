@@ -103,6 +103,13 @@ def confirm_payment_callback(call):
         user = call.from_user
         chat_id = call.message.chat.id
 
+        print(f"[DEBUG] Callback confirm_payment отримано. cid={cid}, user_id={user.id}")
+
+        # Перевіряємо, чи курс існує
+        if cid not in COURSES:
+            bot.answer_callback_query(call.id, "❌ Курс не знайдено.")
+            return
+
         # Надсилаємо адміну підтвердження
         bot.send_message(
             ADMIN_CHAT_ID,
@@ -116,9 +123,14 @@ def confirm_payment_callback(call):
 
         bot.answer_callback_query(call.id, "✅ Заявка надіслана. Очікуй підтвердження.")
         bot.send_message(chat_id, "🔄 Очікуємо підтвердження оплати від адміна.")
+
     except Exception as e:
         print(f"[ERROR] confirm_payment_callback: {e}")
-        bot.answer_callback_query(call.id, "❌ Сталася помилка. Спробуй ще раз.")
+        try:
+            bot.answer_callback_query(call.id, "❌ Сталася помилка. Спробуй ще раз.")
+        except:
+            pass  # Якщо навіть answer_callback_query впаде
+
 
 # --- Flask webhook ---
 @app.route(f"/{BOT_TOKEN}/", methods=['POST'])
