@@ -67,11 +67,6 @@ bot.send_message(
 )
 
 
-Після оплати натисни кнопку нижче.""",
-                parse_mode="Markdown",
-                reply_markup=markup
-            )
-
         elif text == "⬅️ Назад":
             user_state.pop(chat_id, None)
             show_main_menu(chat_id)
