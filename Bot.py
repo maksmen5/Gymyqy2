@@ -155,6 +155,12 @@ def webhook():
         return '', 200
     return 'Invalid content-type', 403
 
+# тимчасово в Bot.py, напиши у приват ботові /debug
+@bot.message_handler(commands=['debug'])
+def debug(msg):
+    bot.send_message(msg.chat.id, f"CHANNELS['home'] = {CHANNELS['home']}")
+
+
 # --- Запуск ---
 if __name__ == '__main__':
     bot.remove_webhook()
