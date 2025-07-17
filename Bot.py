@@ -1,12 +1,11 @@
 import telebot
 from telebot import types
 from flask import Flask, request
-from config import BOT_TOKEN, COURSES, CHANNELS
+from config import BOT_TOKEN, COURSES, CHANNELS, ADMIN_CHAT_ID
 
 bot = telebot.TeleBot(BOT_TOKEN)
 app = Flask(__name__)
 
-ADMIN_CHAT_ID = 1384804489
 user_state = {}
 
 # --- Меню ---
@@ -147,6 +146,6 @@ def webhook():
 if __name__ == '__main__':
     import os
     bot.remove_webhook()
-    WEBHOOK_URL = f"https://{os.getenv('RENDER_EXTERNAL_HOSTNAME')}/"
+    WEBHOOK_URL = os.getenv("WEBHOOK_URL") or f"https://{os.getenv('RENDER_EXTERNAL_HOSTNAME')}/"
     bot.set_webhook(url=WEBHOOK_URL)
     app.run(host='0.0.0.0', port=5000)
