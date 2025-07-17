@@ -1,10 +1,8 @@
-import os
 import telebot
 from telebot import types
 from flask import Flask, request
 from config import BOT_TOKEN, COURSES, CHANNELS, ADMIN_CHAT_ID
 
-# --- Ініціалізація бота та Flask ---
 bot = telebot.TeleBot(BOT_TOKEN)
 app = Flask(__name__)
 
@@ -27,24 +25,7 @@ def show_course_menu(chat_id, course_id):
     )
     bot.send_message(chat_id, f"📘 {course['name']}", reply_markup=markup)
 
-# --- Логіка оплати ---
-def handle_successful_payment(user_id, course_id):
-    try:
-        chat_id = CHANNELS.get(course_id)
-        if not chat_id:
-            bot.send_message(user_id, "❌ Канал не знайдено для цього курсу.")
-            return
-        invite = bot.create_chat_invite_link(
-            chat_id=chat_id,
-            member_limit=1,
-            creates_join_request=False
-        )
-        bot.send_message(user_id, f"✅ Оплату підтверджено!\n🔗 Ось твоє посилання:\n{invite.invite_link}")
-    except Exception as e:
-        bot.send_message(user_id, f"❌ Помилка видачі доступу:\n{e}")
-        print(f"[ERROR] handle_successful_payment: {e}")
-
-# --- Обробка повідомлень ---
+# --- Основна логіка ---
 @bot.message_handler(commands=['start'])
 def start(message):
     user_state.pop(message.chat.id, None)
@@ -55,14 +36,12 @@ def handle_message(message):
     chat_id = message.chat.id
     text = message.text.strip()
 
-    # Перехід на меню курсу
     for cid, course in COURSES.items():
         if text == course['name']:
             user_state[chat_id] = cid
             show_course_menu(chat_id, cid)
             return
 
-    # Взаємодія в меню курсу
     if chat_id in user_state:
         cid = user_state[chat_id]
         course = COURSES[cid]
@@ -95,7 +74,41 @@ def handle_message(message):
     else:
         bot.send_message(chat_id, "❗️ Оберіть курс з меню.")
 
-# --- Callback кнопки ---
+# --- Підтвердження оплати від адміна ---
+@bot.message_handler(commands=['confirm'])
+def confirm_payment_command(message):
+    try:
+        parts = message.text.strip().split("_")
+        if len(parts) != 3:
+            bot.reply_to(message, "❌ Невірний формат. Приклад: /confirm_USERID_COURSEID")
+            return
+
+        user_id, course_id = parts[1], parts[2]
+        handle_successful_payment(int(user_id), course_id)
+        bot.reply_to(message, "✅ Доступ до курсу видано користувачу.")
+
+    except Exception as e:
+        print(f"[ERROR] confirm_payment_command: {e}")
+        bot.reply_to(message, "❌ Сталася помилка при підтвердженні оплати.")
+
+# --- Скасування доступу ---
+@bot.message_handler(commands=['revoke'])
+def revoke_access(message):
+    try:
+        parts = message.text.strip().split("_")
+        if len(parts) != 3:
+            bot.reply_to(message, "❌ Невірний формат. Приклад: /revoke_USERID_COURSEID")
+            return
+
+        user_id, course_id = parts[1], parts[2]
+        bot.ban_chat_member(chat_id=CHANNELS[course_id], user_id=int(user_id))
+        bot.unban_chat_member(chat_id=CHANNELS[course_id], user_id=int(user_id))
+        bot.reply_to(message, f"🚫 Доступ до курсу {course_id} для користувача {user_id} скасовано.")
+    except Exception as e:
+        print(f"[ERROR] revoke_access: {e}")
+        bot.reply_to(message, f"❌ Помилка: {e}")
+
+# --- Обробка кнопки "Я оплатив" ---
 @bot.callback_query_handler(func=lambda call: call.data.startswith("confirm_payment"))
 def confirm_payment_callback(call):
     try:
@@ -103,14 +116,6 @@ def confirm_payment_callback(call):
         user = call.from_user
         chat_id = call.message.chat.id
 
-        print(f"[DEBUG] Callback confirm_payment отримано. cid={cid}, user_id={user.id}")
-
-        # Перевіряємо, чи курс існує
-        if cid not in COURSES:
-            bot.answer_callback_query(call.id, "❌ Курс не знайдено.")
-            return
-
-        # Надсилаємо адміну підтвердження
         bot.send_message(
             ADMIN_CHAT_ID,
             f"📝 Заявка на оплату\n"
@@ -126,30 +131,38 @@ def confirm_payment_callback(call):
 
     except Exception as e:
         print(f"[ERROR] confirm_payment_callback: {e}")
-        try:
-            bot.answer_callback_query(call.id, "❌ Сталася помилка. Спробуй ще раз.")
-        except:
-            pass  # Якщо навіть answer_callback_query впаде
+        bot.answer_callback_query(call.id, "❌ Сталася помилка. Спробуй ще раз.")
 
+# --- Видача доступу ---
+def handle_successful_payment(user_id, course_id):
+    try:
+        chat_id = CHANNELS.get(course_id)
+        if not chat_id:
+            bot.send_message(user_id, "❌ Канал не знайдено.")
+            return
+        invite = bot.create_chat_invite_link(
+            chat_id=chat_id,
+            member_limit=1,
+            creates_join_request=False
+        )
+        bot.send_message(user_id, f"✅ Доступ підтверджено!\n🔗 Посилання:\n{invite.invite_link}")
+    except Exception as e:
+        print(f"[ERROR] handle_successful_payment: {e}")
+        bot.send_message(user_id, f"❌ Помилка доступу:\n{e}")
 
-# --- Flask webhook ---
-@app.route(f"/{BOT_TOKEN}/", methods=['POST'])
+# --- Webhook ---
+@app.route('/', methods=['POST'])
 def webhook():
     if request.headers.get('content-type') == 'application/json':
         json_string = request.get_data().decode('utf-8')
         update = telebot.types.Update.de_json(json_string)
         bot.process_new_updates([update])
-        return 'OK', 200
+        return '', 200
     return 'Invalid content-type', 403
 
-@app.route("/", methods=['GET'])
-def index():
-    return "✅ Бот працює", 200
-
-# --- Запуск ---
 if __name__ == '__main__':
-    WEBHOOK_URL = os.getenv("WEBHOOK_URL") or f"https://telebot-zydo.onrender.com/{BOT_TOKEN}/"
+    import os
     bot.remove_webhook()
+    WEBHOOK_URL = os.getenv("WEBHOOK_URL") or f"https://{os.getenv('RENDER_EXTERNAL_HOSTNAME')}/"
     bot.set_webhook(url=WEBHOOK_URL)
-    print(f"🌐 Webhook встановлено на {WEBHOOK_URL}")
-    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+    app.run(host='0.0.0.0', port=5000)
