@@ -181,6 +181,9 @@ def test_invite(msg):
     except Exception as e:
         bot.send_message(msg.chat.id, f"❌ Error: {e}")
 
+@bot.message_handler(commands=['getid'])
+def get_id(message):
+    bot.send_message(message.chat.id, f"Chat ID: {message.chat.id}")
 
 
 
