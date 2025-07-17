@@ -31,7 +31,23 @@ def start(message):
     user_state.pop(message.chat.id, None)
     show_main_menu(message.chat.id)
 
-@bot.message_handler(func=lambda message: True)
+@bot.message_handler(commands=['confirm'])
+def confirm_payment_command(message):
+    try:
+        parts = message.text.strip().split("_")
+        if len(parts) != 3:
+            bot.reply_to(message, "❌ Невірний формат. Приклад: /confirm_USERID_COURSEID")
+            return
+
+        user_id, course_id = parts[1], parts[2]
+        handle_successful_payment(int(user_id), course_id)
+        bot.reply_to(message, "✅ Доступ до курсу видано користувачу.")
+    except Exception as e:
+        print(f"[ERROR] confirm_payment_command: {e}")
+        bot.reply_to(message, "❌ Сталася помилка при підтвердженні оплати.")
+
+# 👇 Цей обробник перенесений вниз і тепер ігнорує команди
+@bot.message_handler(func=lambda message: not message.text.startswith("/"))
 def handle_message(message):
     chat_id = message.chat.id
     text = message.text.strip()
@@ -73,6 +89,7 @@ def handle_message(message):
             bot.send_message(chat_id, "❗️ Оберіть кнопку з меню.")
     else:
         bot.send_message(chat_id, "❗️ Оберіть курс з меню.")
+
 
 # --- Підтвердження оплати від адміна ---
 @bot.message_handler(commands=['confirm'])
