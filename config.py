@@ -12,7 +12,7 @@ WEBHOOK_URL = "https://telebot-zydo.onrender.com"
 
 
 # 👮‍♂️ ID адміна для підтвердження оплат
-ADMIN_CHAT_ID = 123456789  # 🔁 Заміни на свій ID з @userinfobot
+ADMIN_CHAT_ID = 1384804489  # 🔁 Заміни на свій ID з @userinfobot
 
 # 📦 Курси
 COURSES = {
