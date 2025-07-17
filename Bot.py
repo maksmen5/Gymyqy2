@@ -1,12 +1,13 @@
+import os
+from flask import Flask, request
 import telebot
 from telebot import types
-from flask import Flask, request
 from config import BOT_TOKEN, COURSES, CHANNELS, ADMIN_CHAT_ID
 
+# --- Ініціалізація ---
 bot = telebot.TeleBot(BOT_TOKEN)
 app = Flask(__name__)
-
-user_state = {}
+user_state = {}  # Для збереження стану користувачів
 
 # --- Меню ---
 def show_main_menu(chat_id):
@@ -25,7 +26,24 @@ def show_course_menu(chat_id, course_id):
     )
     bot.send_message(chat_id, f"📘 {course['name']}", reply_markup=markup)
 
-# --- Основна логіка ---
+# --- Підтвердження оплати ---
+def handle_successful_payment(user_id, course_id):
+    try:
+        chat_id = CHANNELS.get(course_id)
+        if not chat_id:
+            bot.send_message(user_id, "❌ Канал не знайдено.")
+            return
+        invite = bot.create_chat_invite_link(
+            chat_id=chat_id,
+            member_limit=1,
+            creates_join_request=False
+        )
+        bot.send_message(user_id, f"✅ Доступ підтверджено!\n🔗 Посилання:\n{invite.invite_link}")
+    except Exception as e:
+        bot.send_message(user_id, f"❌ Помилка видачі доступу:\n{e}")
+        print(f"[ERROR] handle_successful_payment: {e}")
+
+# --- Команди ---
 @bot.message_handler(commands=['start'])
 def start(message):
     user_state.pop(message.chat.id, None)
@@ -38,7 +56,6 @@ def confirm_payment_command(message):
         if len(parts) != 3:
             bot.reply_to(message, "❌ Невірний формат. Приклад: /confirm_USERID_COURSEID")
             return
-
         user_id, course_id = parts[1], parts[2]
         handle_successful_payment(int(user_id), course_id)
         bot.reply_to(message, "✅ Доступ до курсу видано користувачу.")
@@ -46,7 +63,46 @@ def confirm_payment_command(message):
         print(f"[ERROR] confirm_payment_command: {e}")
         bot.reply_to(message, "❌ Сталася помилка при підтвердженні оплати.")
 
-# 👇 Цей обробник перенесений вниз і тепер ігнорує команди
+@bot.message_handler(commands=['revoke'])
+def revoke_access(message):
+    parts = message.text.strip().split("_")
+    if len(parts) != 3:
+        bot.reply_to(message, "❌ Невірний формат. Приклад: /revoke_USERID_COURSEID")
+        return
+    user_id, course_id = parts[1], parts[2]
+    try:
+        bot.ban_chat_member(chat_id=CHANNELS[course_id], user_id=int(user_id))
+        bot.unban_chat_member(chat_id=CHANNELS[course_id], user_id=int(user_id))
+        bot.reply_to(message, f"🚫 Доступ до курсу {course_id} для користувача {user_id} скасовано.")
+    except Exception as e:
+        bot.reply_to(message, f"❌ Помилка: {e}")
+
+# --- Callback кнопки ---
+@bot.callback_query_handler(func=lambda call: call.data.startswith("confirm_payment"))
+def confirm_payment_callback(call):
+    try:
+        cid = call.data.split(":")[1]
+        user = call.from_user
+        chat_id = call.message.chat.id
+
+        # Надсилаємо адміну заявку
+        bot.send_message(
+            ADMIN_CHAT_ID,
+            f"📝 Заявка на оплату\n"
+            f"Користувач: @{user.username or 'немає'}\n"
+            f"ID: {user.id}\n"
+            f"Курс: {COURSES[cid]['name']}\n"
+            f"Сума: {COURSES[cid]['price']}\n"
+            f"Підтвердити: /confirm_{user.id}_{cid}"
+        )
+
+        bot.answer_callback_query(call.id, "Заявка надіслана. Очікуй підтвердження.")
+        bot.send_message(chat_id, "🔄 Очікуємо підтвердження оплати від адміна.")
+    except Exception as e:
+        print(f"[ERROR] confirm_payment_callback: {e}")
+        bot.answer_callback_query(call.id, "❌ Сталася помилка. Спробуй ще раз.")
+
+# --- Обробка текстових повідомлень ---
 @bot.message_handler(func=lambda message: not message.text.startswith("/"))
 def handle_message(message):
     chat_id = message.chat.id
@@ -72,7 +128,6 @@ def handle_message(message):
 
             markup = types.InlineKeyboardMarkup()
             markup.add(types.InlineKeyboardButton("✅ Я оплатив", callback_data=f"confirm_payment:{cid}"))
-
             bot.send_message(
                 chat_id,
                 f"""💳 Сплати *{course['price']} грн* на карту: `4441 1144 2233 4455`
@@ -90,84 +145,7 @@ def handle_message(message):
     else:
         bot.send_message(chat_id, "❗️ Оберіть курс з меню.")
 
-
-# --- Підтвердження оплати від адміна ---
-@bot.message_handler(commands=['confirm'])
-def confirm_payment_command(message):
-    try:
-        parts = message.text.strip().split("_")
-        if len(parts) != 3:
-            bot.reply_to(message, "❌ Невірний формат. Приклад: /confirm_USERID_COURSEID")
-            return
-
-        user_id, course_id = parts[1], parts[2]
-        handle_successful_payment(int(user_id), course_id)
-        bot.reply_to(message, "✅ Доступ до курсу видано користувачу.")
-
-    except Exception as e:
-        print(f"[ERROR] confirm_payment_command: {e}")
-        bot.reply_to(message, "❌ Сталася помилка при підтвердженні оплати.")
-
-# --- Скасування доступу ---
-@bot.message_handler(commands=['revoke'])
-def revoke_access(message):
-    try:
-        parts = message.text.strip().split("_")
-        if len(parts) != 3:
-            bot.reply_to(message, "❌ Невірний формат. Приклад: /revoke_USERID_COURSEID")
-            return
-
-        user_id, course_id = parts[1], parts[2]
-        bot.ban_chat_member(chat_id=CHANNELS[course_id], user_id=int(user_id))
-        bot.unban_chat_member(chat_id=CHANNELS[course_id], user_id=int(user_id))
-        bot.reply_to(message, f"🚫 Доступ до курсу {course_id} для користувача {user_id} скасовано.")
-    except Exception as e:
-        print(f"[ERROR] revoke_access: {e}")
-        bot.reply_to(message, f"❌ Помилка: {e}")
-
-# --- Обробка кнопки "Я оплатив" ---
-@bot.callback_query_handler(func=lambda call: call.data.startswith("confirm_payment"))
-def confirm_payment_callback(call):
-    try:
-        cid = call.data.split(":")[1]
-        user = call.from_user
-        chat_id = call.message.chat.id
-
-        bot.send_message(
-            ADMIN_CHAT_ID,
-            f"📝 Заявка на оплату\n"
-            f"Користувач: @{user.username or 'немає'}\n"
-            f"ID: {user.id}\n"
-            f"Курс: {COURSES[cid]['name']}\n"
-            f"Сума: {COURSES[cid]['price']}\n"
-            f"Підтвердити: /confirm_{user.id}_{cid}"
-        )
-
-        bot.answer_callback_query(call.id, "✅ Заявка надіслана. Очікуй підтвердження.")
-        bot.send_message(chat_id, "🔄 Очікуємо підтвердження оплати від адміна.")
-
-    except Exception as e:
-        print(f"[ERROR] confirm_payment_callback: {e}")
-        bot.answer_callback_query(call.id, "❌ Сталася помилка. Спробуй ще раз.")
-
-# --- Видача доступу ---
-def handle_successful_payment(user_id, course_id):
-    try:
-        chat_id = CHANNELS.get(course_id)
-        if not chat_id:
-            bot.send_message(user_id, "❌ Канал не знайдено.")
-            return
-        invite = bot.create_chat_invite_link(
-            chat_id=chat_id,
-            member_limit=1,
-            creates_join_request=False
-        )
-        bot.send_message(user_id, f"✅ Доступ підтверджено!\n🔗 Посилання:\n{invite.invite_link}")
-    except Exception as e:
-        print(f"[ERROR] handle_successful_payment: {e}")
-        bot.send_message(user_id, f"❌ Помилка доступу:\n{e}")
-
-# --- Webhook ---
+# --- Flask Webhook ---
 @app.route('/', methods=['POST'])
 def webhook():
     if request.headers.get('content-type') == 'application/json':
@@ -177,9 +155,9 @@ def webhook():
         return '', 200
     return 'Invalid content-type', 403
 
+# --- Запуск ---
 if __name__ == '__main__':
-    import os
     bot.remove_webhook()
     WEBHOOK_URL = os.getenv("WEBHOOK_URL") or f"https://{os.getenv('RENDER_EXTERNAL_HOSTNAME')}/"
     bot.set_webhook(url=WEBHOOK_URL)
-    app.run(host='0.0.0.0', port=5000)
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
