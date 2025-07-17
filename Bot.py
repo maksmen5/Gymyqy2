@@ -30,7 +30,7 @@ def handle_course_selection(call):
         except Exception as e:
             bot.send_message(call.message.chat.id, f"❌ Не вдалося створити інвайт: {e}")
     else:
-        bot.send_message()
+        bot.send_message(
             call.message.chat.id,
             f"""💳 Сплати *{course['price']} грн* на картку: `4441 1144 2233 4455`
 
@@ -38,7 +38,7 @@ def handle_course_selection(call):
 
 Після оплати натисни кнопку нижче.""",
             parse_mode="Markdown"
-        
+        )
 
 # Обробка /confirm
 @bot.message_handler(commands=["confirm"])
@@ -61,7 +61,7 @@ def handle_confirm(message):
     bot.send_message(message.chat.id, "⏳ Очікуй підтвердження від адміністратора.")
 
 # Підтвердження доступу (адмін)
-@bot.message_handler(commands=['confirm_'])
+@bot.message_handler(func=lambda message: message.text.startswith("/confirm_"))
 def admin_confirm_access(message):
     if message.chat.id != ADMIN_CHAT_ID:
         return
@@ -75,7 +75,7 @@ def admin_confirm_access(message):
         bot.send_message(message.chat.id, f"❌ Помилка: {e}")
 
 # Відкликання доступу (адмін)
-@bot.message_handler(commands=['revoke_'])
+@bot.message_handler(func=lambda message: message.text.startswith("/revoke_"))
 def admin_revoke(message):
     if message.chat.id != ADMIN_CHAT_ID:
         return
