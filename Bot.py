@@ -30,7 +30,7 @@ def handle_course_selection(call):
         except Exception as e:
             bot.send_message(call.message.chat.id, f"❌ Не вдалося створити інвайт: {e}")
     else:
-        bot.send_message(
+        bot.send_message()
             call.message.chat.id,
             f"""💳 Сплати *{course['price']} грн* на картку: `4441 1144 2233 4455`
 
@@ -38,7 +38,7 @@ def handle_course_selection(call):
 
 Після оплати натисни кнопку нижче.""",
             parse_mode="Markdown"
-        )
+        
 
 # Обробка /confirm
 @bot.message_handler(commands=["confirm"])
