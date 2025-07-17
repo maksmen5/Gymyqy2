@@ -36,14 +36,16 @@ def handle_course_selection(message):
         payments[user_id] = course_key
         markup = types.InlineKeyboardMarkup()
         markup.add(types.InlineKeyboardButton("✅ Я оплатив", callback_data="confirm_payment"))
-        bot.send_message(
-            user_id,
-            f"💳 Сплати *{course['price']} грн* на карту: `4441 1144 2233 4455`
 
-Після оплати натисни кнопку нижче.",
-            parse_mode="Markdown",
-            reply_markup=markup
-        )
+bot.send_message(
+    chat_id,
+    f"""💳 Сплати *{course['price']} грн* на карту: `4441 1144 2233 4455`
+
+Після оплати натисни кнопку нижче.""",
+    parse_mode="Markdown",
+    reply_markup=InlineKeyboardMarkup().add(InlineKeyboardButton("✅ Я оплатив", callback_data=f"confirm_{course_key}"))
+)
+
 
 
 @bot.callback_query_handler(func=lambda call: call.data == "confirm_payment")
