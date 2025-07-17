@@ -32,11 +32,16 @@ def start(message):
     user_state.pop(message.chat.id, None)
     show_main_menu(message.chat.id)
 
-@bot.message_handler(func=lambda m: True)
-def handle_message(message):
-    chat_id = message.chat.id
-    text = message.text
 
+@bot.message_handler(func=lambda message: message.text.startswith("/confirm_"))
+def confirm_payment_command(message):
+    parts = message.text.split("_")
+    if len(parts) != 3:
+        bot.reply_to(message, "❌ Невірний формат. Приклад: /confirm_USERID_COURSEID")
+        return
+    user_id, course_id = parts[1], parts[2]
+    handle_successful_payment(int(user_id), course_id)
+    bot.reply_to(message, "✅ Доступ видано.")
     for cid, course in COURSES.items():
         if text == course['name']:
             user_state[chat_id] = cid
@@ -94,15 +99,10 @@ def confirm_payment_callback(call):
     bot.answer_callback_query(call.id, "Заявка надіслана. Очікуй підтвердження.")
     bot.send_message(chat_id, "🔄 Очікуємо підтвердження оплати від адміна")
 
-@bot.message_handler(func=lambda message: message.text.startswith("/confirm_"))
-def confirm_payment_command(message):
-    parts = message.text.split("_")
-    if len(parts) != 3:
-        bot.reply_to(message, "❌ Невірний формат. Приклад: /confirm_USERID_COURSEID")
-        return
-    user_id, course_id = parts[1], parts[2]
-    handle_successful_payment(int(user_id), course_id)
-    bot.reply_to(message, "✅ Доступ видано.")
+@bot.message_handler(func=lambda m: True)
+def handle_message(message):
+    chat_id = message.chat.id
+    text = message.text
 
 @bot.message_handler(func=lambda message: message.text.startswith("/revoke_"))
 def revoke_access(message):
