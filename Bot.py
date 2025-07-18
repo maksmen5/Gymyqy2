@@ -15,9 +15,6 @@ def show_main_menu(chat_id):
     buttons = [types.KeyboardButton(course['name']) for course in COURSES.values()]
     markup.add(*buttons)
     bot.send_message(chat_id, "👋 Обери курс:", reply_markup=markup)
-    buttons = [types.KeyboardButton(course['name']) for course in COURSES.values()]
-buttons.append(types.KeyboardButton("📘 Інструкція"))
-markup.add(*buttons)
 
 
 def show_course_menu(chat_id, course_id):
@@ -25,11 +22,11 @@ def show_course_menu(chat_id, course_id):
     markup = types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
     markup.add(
         types.KeyboardButton("ℹ️ Інформація"),
+        types.KeyboardButton("📖 Інструкція"),  # ✅ Додали кнопку
         types.KeyboardButton("💳 Купити"),
         types.KeyboardButton("⬅️ Назад")
     )
     bot.send_message(chat_id, f"📘 {course['name']}", reply_markup=markup)
-
 
 
 # --- Підтвердження оплати ---
@@ -49,15 +46,15 @@ def handle_successful_payment(user_id, course_id):
         bot.send_message(user_id, f"❌ Помилка видачі доступу:\n{e}")
         print(f"[ERROR] handle_successful_payment: {e}")
 
+
 # --- Команди ---
 @bot.message_handler(commands=['start'])
 def start(message):
     user_state.pop(message.chat.id, None)
     show_main_menu(message.chat.id)
 
-import re
 
-@bot.message_handler(func=lambda m: re.match(r'^/confirm_\d+_\w+$', m.text))
+@bot.message_handler(func=lambda m: m.text.startswith("/confirm_"))
 def confirm_payment_command(message):
     try:
         parts = message.text.strip().split("_")
@@ -71,19 +68,6 @@ def confirm_payment_command(message):
         print(f"[ERROR] confirm_payment_command: {e}")
         bot.reply_to(message, "❌ Сталася помилка при підтвердженні оплати.")
 
-@bot.message_handler(commands=['revoke'])
-def revoke_access(message):
-    parts = message.text.strip().split("_")
-    if len(parts) != 3:
-        bot.reply_to(message, "❌ Невірний формат. Приклад: /revoke_USERID_COURSEID")
-        return
-    user_id, course_id = parts[1], parts[2]
-    try:
-        bot.ban_chat_member(chat_id=CHANNELS[course_id], user_id=int(user_id))
-        bot.unban_chat_member(chat_id=CHANNELS[course_id], user_id=int(user_id))
-        bot.reply_to(message, f"🚫 Доступ до курсу {course_id} для користувача {user_id} скасовано.")
-    except Exception as e:
-        bot.reply_to(message, f"❌ Помилка: {e}")
 
 # --- Callback кнопки ---
 @bot.callback_query_handler(func=lambda call: call.data.startswith("confirm_payment"))
@@ -110,8 +94,8 @@ def confirm_payment_callback(call):
         print(f"[ERROR] confirm_payment_callback: {e}")
         bot.answer_callback_query(call.id, "❌ Сталася помилка. Спробуй ще раз.")
 
-# --- Обробка текстових повідомлень ---
 
+# --- Обробка текстових повідомлень ---
 @bot.message_handler(func=lambda message: not message.text.startswith("/"))
 def handle_message(message):
     chat_id = message.chat.id
@@ -129,6 +113,12 @@ def handle_message(message):
 
         if text == "ℹ️ Інформація":
             bot.send_message(chat_id, f"*{course['name']}*\n\n{course['description']}", parse_mode="Markdown")
+
+        elif text == "📖 Інструкція":
+            # ✅ Відправляємо текст або файл
+            bot.send_message(chat_id, "📖 Інструкція до курсу:\n1️⃣ Виконуй вправи 3 рази на тиждень.\n2️⃣ Харчуйся збалансовано.\n3️⃣ Пий воду 💧.\n\n💪 Успіхів!")
+            # 📂 Якщо треба файл:
+            # bot.send_document(chat_id, open('instructions.pdf', 'rb'))
 
         elif text == "💳 Купити":
             if course['price'] == 0:
@@ -154,6 +144,7 @@ def handle_message(message):
     else:
         bot.send_message(chat_id, "❗️ Оберіть курс з меню.")
 
+
 # --- Flask Webhook ---
 @app.route('/', methods=['POST'])
 def webhook():
@@ -163,28 +154,6 @@ def webhook():
         bot.process_new_updates([update])
         return '', 200
     return 'Invalid content-type', 403
-
-# тимчасово в Bot.py, напиши у приват ботові /debug
-@bot.message_handler(commands=['debug'])
-def debug(msg):
-    bot.send_message(msg.chat.id, f"CHANNELS['home'] = {CHANNELS['home']}")
-
-@bot.message_handler(commands=["test_invite"])
-def test_invite(msg):
-    try:
-        invite = bot.create_chat_invite_link(
-            chat_id=CHANNELS["home"],
-            name="Test Link",
-            expire_date=None
-        )
-        bot.send_message(msg.chat.id, f"✅ Invite link: {invite.invite_link}")
-    except Exception as e:
-        bot.send_message(msg.chat.id, f"❌ Error: {e}")
-
-@bot.message_handler(commands=['getid'])
-def get_id(message):
-    bot.send_message(message.chat.id, f"Chat ID: {message.chat.id}")
-
 
 
 # --- Запуск ---
