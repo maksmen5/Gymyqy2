@@ -22,7 +22,7 @@ def show_course_menu(chat_id, course_id):
     markup = types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
     markup.add(
         types.KeyboardButton("ℹ️ Інформація"),
-        types.KeyboardButton("📖 Інструкція"),  # ✅ Додали кнопку
+        types.KeyboardButton("📖 Інструкція покупки"),  # ✅ Додали кнопку
         types.KeyboardButton("💳 Купити"),
         types.KeyboardButton("⬅️ Назад")
     )
