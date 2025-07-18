@@ -15,6 +15,10 @@ def show_main_menu(chat_id):
     buttons = [types.KeyboardButton(course['name']) for course in COURSES.values()]
     markup.add(*buttons)
     bot.send_message(chat_id, "👋 Обери курс:", reply_markup=markup)
+    buttons = [types.KeyboardButton(course['name']) for course in COURSES.values()]
+buttons.append(types.KeyboardButton("📘 Інструкція"))
+markup.add(*buttons)
+
 
 def show_course_menu(chat_id, course_id):
     course = COURSES[course_id]
@@ -107,6 +111,19 @@ def confirm_payment_callback(call):
         bot.answer_callback_query(call.id, "❌ Сталася помилка. Спробуй ще раз.")
 
 # --- Обробка текстових повідомлень ---
+
+elif text == "📘 Інструкція":
+    help_text = (
+        "🛒 *Як купити курс:*\n\n"
+        "1️⃣ Обери курс із головного меню.\n"
+        "2️⃣ Натисни кнопку *💳 Купити*.\n"
+        "3️⃣ Сплати вказану суму на картку.\n"
+        "4️⃣ Після оплати натисни кнопку *✅ Я оплатив*.\n\n"
+        "⏳ Після цього заявка відправиться адміну. Після підтвердження ти отримаєш посилання на доступ.\n\n"
+        "❓ Якщо виникли питання — напиши адміну або у підтримку."
+    )
+    bot.send_message(chat_id, help_text, parse_mode="Markdown")
+
 @bot.message_handler(func=lambda message: not message.text.startswith("/"))
 def handle_message(message):
     chat_id = message.chat.id
