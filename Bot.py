@@ -69,6 +69,10 @@ def confirm_payment_command(message):
         bot.reply_to(message, "❌ Сталася помилка при підтвердженні оплати.")
 
 
+import time
+
+last_payment_request = {}  # user_id: timestamp
+
 # --- Callback кнопки ---
 @bot.callback_query_handler(func=lambda call: call.data.startswith("confirm_payment"))
 def confirm_payment_callback(call):
@@ -76,6 +80,15 @@ def confirm_payment_callback(call):
         cid = call.data.split(":")[1]
         user = call.from_user
         chat_id = call.message.chat.id
+
+        now = time.time()
+        # Перевіряємо, чи минула 1 хвилина з останньої заявки
+        if user.id in last_payment_request and now - last_payment_request[user.id] < 60:
+            bot.answer_callback_query(call.id, "⏳ Зачекайте трохи перед повторною заявкою.")
+            return
+
+        # Оновлюємо час останньої заявки
+        last_payment_request[user.id] = now
 
         # Надсилаємо адміну заявку
         bot.send_message(
@@ -88,11 +101,12 @@ def confirm_payment_callback(call):
             f"Підтвердити: /confirm_{user.id}_{cid}"
         )
 
-        bot.answer_callback_query(call.id, "Заявка надіслана. Очікуй підтвердження.")
+        bot.answer_callback_query(call.id, "✅ Заявка надіслана. Очікуй підтвердження.")
         bot.send_message(chat_id, "🔄 Очікуємо підтвердження оплати від адміна.")
     except Exception as e:
         print(f"[ERROR] confirm_payment_callback: {e}")
         bot.answer_callback_query(call.id, "❌ Сталася помилка. Спробуй ще раз.")
+
 
 
 # --- Обробка текстових повідомлень ---
