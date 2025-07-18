@@ -26,13 +26,6 @@ def show_course_menu(chat_id, course_id):
     )
     bot.send_message(chat_id, f"📘 {course['name']}", reply_markup=markup)
 
-import time
-
-@bot.message_handler(content_types=["successful_payment"])
-def handle_payment(msg):
-    time.sleep(2)  # затримка 2 секунди
-    ...
-    invite = bot.create_chat_invite_link(chat_id=chat_id, ...)
 
 
 # --- Підтвердження оплати ---
