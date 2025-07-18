@@ -22,7 +22,7 @@ def show_course_menu(chat_id, course_id):
     markup = types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
     markup.add(
         types.KeyboardButton("ℹ️ Інформація"),
-        types.KeyboardButton("📖 Інструкція покупки"),  # ✅ Додали кнопку
+        types.KeyboardButton("📖 Інструкція"),  # ✅ Додали кнопку
         types.KeyboardButton("💳 Купити"),
         types.KeyboardButton("⬅️ Назад")
     )
@@ -116,7 +116,7 @@ def handle_message(message):
 
         elif text == "📖 Інструкція":
             # ✅ Відправляємо текст або файл
-            bot.send_message(chat_id, "📖 Інструкція для покупки:\n1️⃣ Вибири курс і нажми кнопку купити")
+            bot.send_message(chat_id, "📖 Інструкція до курсу:\n1️⃣ Виконуй вправи 3 рази на тиждень.\n2️⃣ Харчуйся збалансовано.\n3️⃣ Пий воду 💧.\n\n💪 Успіхів!")
             # 📂 Якщо треба файл:
             # bot.send_document(chat_id, open('instructions.pdf', 'rb'))
 
