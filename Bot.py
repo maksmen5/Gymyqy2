@@ -5,7 +5,8 @@ from telebot import types
 from config import BOT_TOKEN, COURSES, CHANNELS, ADMIN_CHAT_ID
 
 # --- Ініціалізація ---
-BOT_TOKEN = os.environ.get(BOT_TOKEN)
+BOT_TOKEN = os.environ.get("BOT_TOKEN")
+bot = telebot.TeleBot(BOT_TOKEN)
 app = Flask(__name__)
 user_state = {}  # Для збереження стану користувачів
 
