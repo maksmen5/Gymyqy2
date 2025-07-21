@@ -5,7 +5,6 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # 🔐 Дані бота
-BOT_TOKEN = "8057736246:AAEFRcDq_2tM3Mm_KaN5jCZNKmkD0QrRJuk"
 WEBHOOK_URL = "https://telebot-zydo.onrender.com"
 
 
