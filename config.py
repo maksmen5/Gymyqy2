@@ -6,13 +6,11 @@ load_dotenv()
 
 # 🔐 Дані бота
 BOT_TOKEN = "8057736246:AAEFRcDq_2tM3Mm_KaN5jCZNKmkD0QrRJuk"
-MERCHANT_ACCOUNT = "7de8a72b71369907282f75c00bb050e8"
-MERCHANT_SECRET_KEY = "8600b023c86794b0496293e6b907aee895baa8e0"
 WEBHOOK_URL = "https://telebot-zydo.onrender.com"
 
 
 # 👮‍♂️ ID адміна для підтвердження оплат
-ADMIN_CHAT_ID = 1384804489  # 🔁 Заміни на свій ID з @userinfobot
+ADMIN_CHAT_ID = 1384804489 
 
 # 📦 Курси
 COURSES = {
