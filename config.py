@@ -18,7 +18,6 @@ COURSES = {
     "power": {"name": "Пауерліфтинг", "price": 600, "description": "Жим, присід, тяга для сили."},
     "home": {"name": "Домашні тренування", "price": 0, "description": "Безкоштовна програма вдома."},
     "food": {"name": "План Харчування", "price": 300, "description": "Раціон для росту та сушки."},
-    "steroids": {"name": "Стероїди", "price": 200, "description": "Правда про фарму."},
     "coach_chat": {"name": "Чат з тренером", "price": 100, "description": "2 дні особистих відповідей."}
 }
 
