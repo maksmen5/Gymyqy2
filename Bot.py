@@ -5,10 +5,10 @@ from telebot import types
 from config import BOT_TOKEN, COURSES, CHANNELS, ADMIN_CHAT_ID
 
 # --- Ініціалізація ---
-BOT_TOKEN
 bot = telebot.TeleBot(BOT_TOKEN)
 app = Flask(__name__)
 user_state = {}  # Для збереження стану користувачів
+
 
 # --- Меню ---
 def show_main_menu(chat_id):
