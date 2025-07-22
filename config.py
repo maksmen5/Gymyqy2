@@ -6,7 +6,7 @@ load_dotenv()
 
 # 🔐 Дані бота
 WEBHOOK_URL = "https://telebot-zydo.onrender.com"
-
+BOT_TOKEN = os.environ.get("BOT_TOKEN")
 
 # 👮‍♂️ ID адміна для підтвердження оплат
 ADMIN_CHAT_ID = 1384804489 
